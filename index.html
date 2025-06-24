@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Calm YouTube Player</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: #111;
+      height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      overflow: hidden;
+    }
+
+    #player-container {
+      width: 100vw;
+      max-width: 100%;
+      aspect-ratio: 16 / 9;
+      background: #000;
+      box-shadow: 0 0 60px rgba(255, 255, 255, 0.03);
+      outline: none;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+    }
+
+    #tip {
+      position: absolute;
+      bottom: 10px;
+      right: 16px;
+      color: #555;
+      font-size: 0.7rem;
+      opacity: 0.4;
+      font-family: sans-serif;
+      user-select: none;
+    }
+  </style>
+</head>
+<body>
+
+<div id="player-container" tabindex="0">
+  <div id="player"></div>
+  <div id="tip">← / → / Space</div>
+</div>
+
+<script>
+  let player;
+  let lastSavedTime = parseFloat(localStorage.getItem("yt-last-time")) || 0;
+
+  // Load YouTube IFrame API
+  const tag = document.createElement("script");
+  tag.src = "https://www.youtube.com/iframe_api";
+  document.body.appendChild(tag);
+
+  function onYouTubeIframeAPIReady() {
+    player = new YT.Player("player", {
+      videoId: "M9O5AjEFzKw",
+      playerVars: {
+        autoplay: 1,
+        controls: 0,
+        modestbranding: 1,
+        rel: 0,
+        showinfo: 0,
+        start: Math.floor(lastSavedTime),
+        listType: "playlist",
+        list: "PLSDeUiTMfxW6nMcmZPUG4SgFPAlazWB_S"
+      },
+      events: {
+        onReady: (event) => {
+          event.target.playVideo();
+
+          // Save time every 5s
+          setInterval(() => {
+            try {
+              const time = player.getCurrentTime();
+              localStorage.setItem("yt-last-time", time);
+            } catch (e) {}
+          }, 5000);
+        }
+      }
+    });
+  }
+
+  // Keyboard control
+  const container = document.getElementById("player-container");
+  container.focus();
+
+  document.addEventListener("keydown", (e) => {
+    if (!player || typeof player.getCurrentTime !== "function") return;
+
+    const time = player.getCurrentTime();
+
+    if (e.key === "ArrowRight") {
+      player.seekTo(time + 5, true);
+      e.preventDefault();
+    } else if (e.key === "ArrowLeft") {
+      player.seekTo(Math.max(time - 5, 0), true);
+      e.preventDefault();
+    } else if (e.key === " " || e.code === "Space") {
+      const state = player.getPlayerState();
+      if (state === 1) {
+        player.pauseVideo();
+      } else if (state === 2 || state === 0) {
+        player.playVideo();
+      }
+      e.preventDefault(); // Prevent scroll
+    }
+  });
+
+  // Keep container focused to retain keyboard control
+  window.addEventListener("click", () => container.focus());
+  window.addEventListener("keydown", () => container.focus());
+</script>
+
+</body>
+</html>
