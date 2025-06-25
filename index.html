@@ -76,14 +76,56 @@
 
 <script>
   let player;
-  let lastSavedTime = parseFloat(localStorage.getItem("yt-last-time")) || 0;
   const overlay = document.getElementById("overlay");
+  const container = document.getElementById("player-container");
+  container.focus();
 
-  const tag = document.createElement("script");
-  tag.src = "https://www.youtube.com/iframe_api";
-  document.body.appendChild(tag);
+  // 🧠 Load last session
+  let playlistId = localStorage.getItem("calm-playlist-id");
+  let lastTime = parseFloat(localStorage.getItem("calm-playlist-time")) || 0;
 
-  function onYouTubeIframeAPIReady() {
+  // 🌱 Ask for new playlist if not set
+  async function requestPlaylistIfNeeded() {
+    if (!playlistId) {
+      playlistId = prompt("Paste your YouTube playlist link:");
+
+      // 🧼 Extract playlist ID from full URL
+      const match = playlistId && playlistId.match(/[?&]list=([a-zA-Z0-9_-]+)/);
+      if (match && match[1]) {
+        playlistId = match[1];
+        localStorage.setItem("calm-playlist-id", playlistId);
+      } else {
+        alert("Invalid playlist link.");
+        location.reload();
+      }
+    }
+  }
+
+  // 🧠 Remember timestamp
+  function saveCurrentTime() {
+    try {
+      const time = player.getCurrentTime();
+      localStorage.setItem("calm-playlist-time", time);
+    } catch (e) {}
+  }
+
+  // 🧘 If playlist ended, clear it and reload
+  function onPlaylistEnd() {
+    localStorage.removeItem("calm-playlist-id");
+    localStorage.removeItem("calm-playlist-time");
+    alert("Playlist finished 🌟 You can now enter a new one.");
+    location.reload();
+  }
+
+  async function initPlayer() {
+    await requestPlaylistIfNeeded();
+
+    const tag = document.createElement("script");
+    tag.src = "https://www.youtube.com/iframe_api";
+    document.body.appendChild(tag);
+  }
+
+  window.onYouTubeIframeAPIReady = function () {
     player = new YT.Player("player", {
       height: '100%',
       width: '100%',
@@ -95,40 +137,33 @@
         showinfo: 0,
         iv_load_policy: 3,
         fs: 0,
-        disablekb: 1,       // disables default YT keys
-        cc_load_policy: 0,  // ✅ captions off
-        start: Math.floor(lastSavedTime),
+        disablekb: 1,
+        cc_load_policy: 0, // captions off
         listType: "playlist",
-        list: "PLinedj3B30sCHqHtgbjg1lSYgWebm1dyI", // ✅ your playlist
+        list: playlistId,
+        start: Math.floor(lastTime),
       },
       events: {
         onReady: (event) => {
           event.target.playVideo();
-          setInterval(() => {
-            try {
-              const time = player.getCurrentTime();
-              localStorage.setItem("yt-last-time", time);
-            } catch (e) {}
-          }, 5000);
+          setInterval(saveCurrentTime, 5000);
         },
         onStateChange: (e) => {
           if (e.data === YT.PlayerState.PAUSED) {
             overlay.classList.add("show");
           } else if (e.data === YT.PlayerState.PLAYING) {
             overlay.classList.remove("show");
+          } else if (e.data === YT.PlayerState.ENDED) {
+            onPlaylistEnd(); // final video ended
           }
         }
       }
     });
-  }
+  };
 
-  // Custom key handling
-  const container = document.getElementById("player-container");
-  container.focus();
-
+  // 🎹 Custom key handling
   document.addEventListener("keydown", (e) => {
     if (!player || typeof player.getCurrentTime !== "function") return;
-
     const time = player.getCurrentTime();
 
     if (e.key === " " || e.code === "Space") {
@@ -149,15 +184,15 @@
       e.preventDefault();
     }
 
-    // Block accidental next/prev (PageUp/PageDown/Home/End)
     if (["PageUp", "PageDown", "Home", "End"].includes(e.key)) {
-      e.preventDefault();
+      e.preventDefault(); // block accidental skips
     }
   });
 
-  // Focus keeps keyboard controls alive
   window.addEventListener("click", () => container.focus());
   window.addEventListener("keydown", () => container.focus());
+
+  initPlayer();
 </script>
 
 </body>
