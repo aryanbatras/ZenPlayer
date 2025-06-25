@@ -86,23 +86,23 @@
 
   function onYouTubeIframeAPIReady() {
     player = new YT.Player("player", {
-      videoId: "M9O5AjEFzKw", // your specific video
+      videoId: "M9O5AjEFzKw",
       playerVars: {
         autoplay: 1,
         controls: 0,
         modestbranding: 1,
         rel: 0,
         showinfo: 0,
-        start: Math.floor(lastSavedTime),
-        disablekb: 1,       // disable default YT keyboard (we handle keys)
+        iv_load_policy: 3,
         fs: 0,
-        iv_load_policy: 3
+        disablekb: 1,
+        cc_load_policy: 1, // ✅ enable captions by default
+        start: Math.floor(lastSavedTime)
       },
       events: {
         onReady: (event) => {
           event.target.playVideo();
-
-          // Save time every 5s
+          // Save current time every 5 seconds
           setInterval(() => {
             try {
               const time = player.getCurrentTime();
@@ -112,7 +112,7 @@
         },
         onStateChange: (e) => {
           if (e.data === YT.PlayerState.PAUSED) {
-            overlay.classList.add("show");
+            overlay.classList.add("show"); // 🛡️ Blocks "More Videos"
           } else if (e.data === YT.PlayerState.PLAYING) {
             overlay.classList.remove("show");
           }
@@ -121,7 +121,7 @@
     });
   }
 
-  // Keyboard controls: space, left, right
+  // Key controls: arrow seek + space toggle
   const container = document.getElementById("player-container");
   container.focus();
 
