@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Calm YouTube Player</title>
+  <title>Calm YouTube Playlist</title>
   <style>
     html, body {
       margin: 0;
@@ -79,14 +79,14 @@
   let lastSavedTime = parseFloat(localStorage.getItem("yt-last-time")) || 0;
   const overlay = document.getElementById("overlay");
 
-  // Load YouTube IFrame API
   const tag = document.createElement("script");
   tag.src = "https://www.youtube.com/iframe_api";
   document.body.appendChild(tag);
 
   function onYouTubeIframeAPIReady() {
     player = new YT.Player("player", {
-      videoId: "M9O5AjEFzKw",
+      height: '100%',
+      width: '100%',
       playerVars: {
         autoplay: 1,
         controls: 0,
@@ -95,14 +95,15 @@
         showinfo: 0,
         iv_load_policy: 3,
         fs: 0,
-        disablekb: 1,
-        cc_load_policy: 1, // ✅ enable captions by default
-        start: Math.floor(lastSavedTime)
+        disablekb: 1,       // disables default YT keys
+        cc_load_policy: 0,  // ✅ captions off
+        start: Math.floor(lastSavedTime),
+        listType: "playlist",
+        list: "PLinedj3B30sCHqHtgbjg1lSYgWebm1dyI", // ✅ your playlist
       },
       events: {
         onReady: (event) => {
           event.target.playVideo();
-          // Save current time every 5 seconds
           setInterval(() => {
             try {
               const time = player.getCurrentTime();
@@ -112,7 +113,7 @@
         },
         onStateChange: (e) => {
           if (e.data === YT.PlayerState.PAUSED) {
-            overlay.classList.add("show"); // 🛡️ Blocks "More Videos"
+            overlay.classList.add("show");
           } else if (e.data === YT.PlayerState.PLAYING) {
             overlay.classList.remove("show");
           }
@@ -121,7 +122,7 @@
     });
   }
 
-  // Key controls: arrow seek + space toggle
+  // Custom key handling
   const container = document.getElementById("player-container");
   container.focus();
 
@@ -147,8 +148,14 @@
       player.seekTo(Math.max(time - 5, 0), true);
       e.preventDefault();
     }
+
+    // Block accidental next/prev (PageUp/PageDown/Home/End)
+    if (["PageUp", "PageDown", "Home", "End"].includes(e.key)) {
+      e.preventDefault();
+    }
   });
 
+  // Focus keeps keyboard controls alive
   window.addEventListener("click", () => container.focus());
   window.addEventListener("keydown", () => container.focus());
 </script>
